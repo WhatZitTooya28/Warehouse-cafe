@@ -2,69 +2,75 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Barang; // <-- Tambahkan ini
+use App\Models\Barang;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class BarangController extends Controller
 {
     public function index(): View
-        {
-            // Ambil data dari database, 10 item per halaman
-            // Ganti 'Barang' dengan nama model Anda jika berbeda
-            $barangs = Barang::latest()->paginate(10); 
-
-            // Kirim data ke view
-            return view('barang.index', compact('barangs'));
-        }
-
-    public function create()
     {
-        return view('barang.create'); // Tampilkan form tambah
+        $barangs = Barang::latest()->paginate(10);
+        return view('barang.index', compact('barangs'));
     }
 
-    public function store(Request $request)
+    public function create(): View
     {
-        // Validasi input
+        return view('barang.create');
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        // 1. Validasi data dari form (tanpa id_barang)
         $request->validate([
-            'nama_barang' => 'required|string|max:100',
-            'stok' => 'required|integer',
-            'stok_minimum' => 'required|integer',
+            'nama_barang' => 'required|string|max:255',
+            'kategori' => 'required|string',
+            'stok' => 'required|integer|min:0',
+            'satuan' => 'required|string',
+            'lokasi_rak' => 'required|string',
         ]);
 
-        // Simpan data ke database
-        Barang::create($request->all());
+        // 2. Logika pembuatan ID otomatis
+        $lastBarang = Barang::orderBy('id', 'desc')->first();
+        $lastId = $lastBarang ? $lastBarang->id : 0;
+        $newIdBarang = 'BRG' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
-        // Redirect kembali ke halaman index dengan pesan sukses
-        return redirect()->route('barang.index')->with('success', 'Barang berhasil ditambahkan.');
+        // 3. Gabungkan data dari form dengan ID baru
+        $data = $request->all();
+        $data['id_barang'] = $newIdBarang;
+
+        // 4. Simpan data baru ke database
+        Barang::create($data);
+
+        return redirect()->route('barang.index')->with('success', 'Barang baru berhasil ditambahkan.');
+    }
+    public function edit(Barang $barang): View
+    {
+        return view('barang.edit', compact('barang'));
     }
 
-    public function edit(Barang $barang)
+    public function update(Request $request, Barang $barang): RedirectResponse
     {
-        // Laravel otomatis menemukan barang berdasarkan id di URL
-        return view('barang.edit', compact('barang')); // Tampilkan form edit dengan data lama
-    }
-
-    public function update(Request $request, Barang $barang)
-    {
-        // Validasi
         $request->validate([
-            'nama_barang' => 'required|string|max:100',
-            'stok' => 'required|integer',
-            'stok_minimum' => 'required|integer',
+            'nama_barang' => 'required|string|max:255',
+            'kategori' => 'required|string',
+            'stok' => 'required|integer|min:0',
+            'satuan' => 'required|string',
+            'lokasi_rak' => 'required|string',
         ]);
 
-        // Update data
-        $barang->update($request->all());
+        // Untuk update, kita tidak mengubah id_barang, jadi kita hanya kirim data lainnya
+        $barang->update($request->only([
+            'nama_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak'
+        ]));
 
-        return redirect()->route('barang.index')->with('success', 'Barang berhasil diperbarui.');
+        return redirect()->route('barang.index')->with('success', 'Data barang berhasil diperbarui.');
     }
 
-    public function destroy(Barang $barang)
+    public function destroy(Barang $barang): RedirectResponse
     {
-        // Hapus data
         $barang->delete();
-
-        return redirect()->route('barang.index')->with('success', 'Barang berhasil dihapus.');
+        return redirect()->route('barang.index')->with('success', 'Data barang berhasil dihapus.');
     }
 }

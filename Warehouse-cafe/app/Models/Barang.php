@@ -17,8 +17,11 @@ class Barang extends Model
 
     // Izinkan kolom-kolom ini untuk diisi secara massal (mass assignable)
     protected $fillable = [
+        'id_barang', // <-- PASTIKAN BARIS INI ADA
         'nama_barang',
+        'kategori',
         'stok',
-        'stok_minimum',
+        'satuan',
+        'lokasi_rak',
     ];
 }

@@ -8,44 +8,30 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\User; // <-- Tambahkan ini
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\Rule|array|string>
-     */
     public function rules(): array
     {
         return [
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
-            'role' => ['required', 'string'], // <-- PERUBAHAN: Menambahkan validasi untuk role
+            'role' => ['required', 'string'],
         ];
     }
 
-    /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
         $loginField = filter_var($this->input('username'), FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-
-        // --- PERUBAHAN UTAMA ADA DI SINI ---
-        // Menambahkan 'role' ke dalam data yang akan diperiksa oleh Laravel
+        
         $credentials = [
             $loginField => $this->input('username'),
             'password' => $this->input('password'),
@@ -60,14 +46,20 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // --- PERUBAHAN UTAMA: CEK STATUS SETELAH LOGIN BERHASIL ---
+        $user = Auth::user();
+        if ($user->status !== 'aktif') {
+            Auth::logout(); // Logout-kan kembali user
+            
+            throw ValidationException::withMessages([
+                'username' => 'Akun Anda tidak aktif. Silakan hubungi administrator.',
+            ]);
+        }
+        // --- AKHIR PERUBAHAN ---
+
         RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Ensure the login request is not rate limited.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -86,9 +78,6 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->input('username')).'|'.$this->ip());

@@ -2,69 +2,64 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Supplier; // <-- Pastikan ini ada
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class SupplierController extends Controller
 {
-    /**
-     * Menampilkan daftar semua supplier.
-     */
     public function index(): View
     {
-        // Mengambil data supplier dari database, diurutkan dari yang terbaru
         $suppliers = Supplier::latest()->paginate(10);
-        
-        // Mengirim data ke view 'supplier.index'
         return view('supplier.index', compact('suppliers'));
     }
 
-    /**
-     * Menampilkan form untuk membuat supplier baru.
-     */
-    public function create()
+    public function create(): View
     {
-        // Logika untuk menampilkan form tambah supplier akan ditambahkan di sini
+        return view('supplier.create');
     }
 
-    /**
-     * Menyimpan supplier baru ke database.
-     */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        // Logika untuk validasi dan penyimpanan data akan ditambahkan di sini
+        $request->validate([
+            'id_supplier' => 'required|string|unique:supplier,id_supplier',
+            'nama_supplier' => 'required|string|max:255',
+            'kategori' => 'required|string',
+            'telepon' => 'nullable|string',
+            'email' => 'nullable|email',
+            'tanggal_kerjasama' => 'required|date',
+        ]);
+
+        Supplier::create($request->all());
+
+        return redirect()->route('supplier.index')->with('success', 'Supplier baru berhasil ditambahkan.');
     }
 
-    /**
-     * Menampilkan detail satu supplier.
-     */
-    public function show(Supplier $supplier)
+    public function edit(Supplier $supplier): View
     {
-        // Logika untuk menampilkan detail supplier akan ditambahkan di sini
+        return view('supplier.edit', compact('supplier'));
     }
 
-    /**
-     * Menampilkan form untuk mengedit supplier.
-     */
-    public function edit(Supplier $supplier)
+    public function update(Request $request, Supplier $supplier): RedirectResponse
     {
-        // Logika untuk menampilkan form edit akan ditambahkan di sini
+        $request->validate([
+            'id_supplier' => 'required|string|unique:supplier,id_supplier,'.$supplier->id,
+            'nama_supplier' => 'required|string|max:255',
+            'kategori' => 'required|string',
+            'telepon' => 'nullable|string',
+            'email' => 'nullable|email',
+            'tanggal_kerjasama' => 'required|date',
+        ]);
+
+        $supplier->update($request->all());
+
+        return redirect()->route('supplier.index')->with('success', 'Data supplier berhasil diperbarui.');
     }
 
-    /**
-     * Memperbarui data supplier di database.
-     */
-    public function update(Request $request, Supplier $supplier)
+    public function destroy(Supplier $supplier): RedirectResponse
     {
-        // Logika untuk validasi dan pembaruan data akan ditambahkan di sini
-    }
-
-    /**
-     * Menghapus supplier dari database.
-     */
-    public function destroy(Supplier $supplier)
-    {
-        // Logika untuk menghapus data akan ditambahkan di sini
+        $supplier->delete();
+        return redirect()->route('supplier.index')->with('success', 'Data supplier berhasil dihapus.');
     }
 }

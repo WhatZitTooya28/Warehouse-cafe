@@ -7,6 +7,7 @@ use App\Http\Controllers\BarangController;  // <-- Pastikan ini ada
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\UserController;
 
 // Rute utama akan langsung mengarah ke halaman login
 Route::get('/', function () {
@@ -33,6 +34,14 @@ Route::middleware('auth')->group(function () {
 
     // Rute untuk Manajemen Barang
     Route::resource('barang', BarangController::class);
+       // Rute untuk Manajemen User
+    Route::resource('users', UserController::class);
+    // Rute untuk menampilkan form reset password
+    Route::get('/users/{user}/reset-password', [UserController::class, 'showResetForm'])->name('users.reset-password.form');
+
+    // Rute untuk memproses reset password
+    Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password.submit');
+
 });
 
 // Memuat rute untuk autentikasi (login, logout, dll)
